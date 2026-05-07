@@ -599,16 +599,37 @@ function renderResult(){
 // ── XLS 다운로드 (위하고 공식 BIFF8 양식) ────────────────────────────────
 document.getElementById('btnDownload').onclick = function(){
   if(!convertedData.length){ alert('먼저 변환을 실행하세요'); return; }
+  var btn = document.getElementById('btnDownload');
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
   try{
+    console.log('[XLS] 시작, 데이터:', convertedData.length, '명');
     var buf = buildXLS();
-    var blob = new Blob([buf], {type:'application/vnd.ms-excel'});
-    var url  = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    a.href = url;
-    a.download = '위하고_사업소득_' + convertedData[0].attrMonth + '.xls';
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
-  }catch(e){ alert('XLS 생성 오류: '+e.message); console.error(e); }
+    console.log('[XLS] 생성 완료:', buf.byteLength, 'bytes');
+
+    // data URI 방식 (Blob URL 대신 - 더 안정적)
+    var bytes = new Uint8Array(buf);
+    var binary = '';
+    for(var i=0; i<bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    var b64 = btoa(binary);
+    var dataUri = 'data:application/vnd.ms-excel;base64,' + b64;
+
+    var a = document.createElement('a');
+    a.href = dataUri;
+    a.download = 'wihago_' + convertedData[0].attrMonth + '.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    console.log('[XLS] 다운로드 트리거 완료');
+
+    btn.textContent = '⬇ 위하고 양식 다운로드 (.xls)';
+    btn.disabled = false;
+  }catch(e){
+    console.error('[XLS] 오류:', e.message, e.stack);
+    alert('XLS 생성 오류: '+e.message);
+    btn.textContent = '⬇ 위하고 양식 다운로드 (.xls)';
+    btn.disabled = false;
+  }
 };
 
 // ── BIFF8 XLS 빌더 ────────────────────────────────────────────────────────
